@@ -14,13 +14,34 @@ var KEY_LEFT = 37;
 var KEY_UP = 38;
 var KEY_RIGHT = 39;
 var KEY_DOWN = 40;
-var borderDraw = false;
+var borderDraw = true;
 var animLoopHandle;
 var spin = -Math.PI;
 var enemySpin = -Math.PI;
 var mobile = false;
-var foodSides = 10;
-var virusSides = 20;
+var foodSides = 6;
+var virusSides = 0;
+var pattern;
+var cell_bg;
+function backgroundimg(size,url){
+    //http://agar.io/skins/doge.png
+    cell_bg = new Image();
+    cell_bg.src = 'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?url='+url+'&container=focus&resize_w='+size+'&resize_h='+size; 
+    cell_bg.onload = function(){
+        pattern = graph.createPattern(this, "repeat");
+    };
+}
+//var cell_bg = new Image();
+//cell_bg.src = 'http://agar.io/skins/doge.png';
+//cell_bg.onload = function(){
+  // Now you can pass the `img` object to various functions
+//};
+
+if(window.location.host.split('.')[0] == 'agar5'){
+    document.getElementById("gamemode").selectedIndex = 0;
+} else {
+    document.getElementById("gamemode").selectedIndex = 1;
+}
 
 var debug = function(args) {
     if (console && console.log) {
@@ -51,30 +72,26 @@ function startGame(type) {
 }
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
-function validNick() {
-    var regex = /^\w*$/;
-    debug('Regex Test', regex.exec(playerNameInput.value));
-    return regex.exec(playerNameInput.value) !== null;
-}
+//function validNick() {
+//    var regex = /^\w*$/;
+//    debug('Regex Test', regex.exec(playerNameInput.value));
+//    return regex.exec(playerNameInput.value) !== null;
+//}
 
 window.onload = function() {
 
     var btn = document.getElementById('startButton'),
-        btnS = document.getElementById('spectateButton'),
         nickErrorText = document.querySelector('#startMenu .input-error');
 
-    btnS.onclick = function () {
-        startGame('spectate');
-    };
     btn.onclick = function () {
 
         // Checks if the nick is valid.
-        if (validNick()) {
-            nickErrorText.style.opacity = 0;
+        //if (validNick()) {
+        //    nickErrorText.style.opacity = 0;
             startGame('player');
-        } else {
-            nickErrorText.style.opacity = 1;
-        }
+        //} else {
+        //    nickErrorText.style.opacity = 1;
+        //}
     };
 
     var settingsMenu = document.getElementById('settingsButton');
@@ -93,12 +110,12 @@ window.onload = function() {
         var key = e.which || e.keyCode;
 
         if (key === KEY_ENTER) {
-            if (validNick()) {
-                nickErrorText.style.opacity = 0;
+            //if (validNick()) {
+            //    nickErrorText.style.opacity = 0;
                 startGame('player');
-            } else {
-                nickErrorText.style.opacity = 1;
-            }
+            //} else {
+            //    nickErrorText.style.opacity = 1;
+            //}
         }
     });
 };
@@ -117,9 +134,9 @@ var died = false;
 var kicked = false;
 
 // TODO: Break out into GameControls.
-var continuity = false;
+var continuity = true;
 var startPingTime = 0;
-var toggleMassState = 0;
+var toggleMassState = 1;
 var backgroundColor = '#f2fbff';
 var lineColor = '#000000';
 
@@ -266,6 +283,7 @@ ChatClient.prototype.sendChat = function (key) {
             } else {
                 socket.emit('playerChat', { sender: player.name, message: text });
                 this.addChatLine(player.name, text, true);
+                responsiveVoice.speak(text, "UK English Male", {pitch: 1});
             }
 
             // Resets input.
@@ -303,7 +321,6 @@ function keyInput(event) {
         reenviar = false;
     }
     else if (key === KEY_SPLIT && reenviar) {
-       document.getElementById('split_cell').play();
         socket.emit('2');
         reenviar = false;
     }
@@ -403,8 +420,8 @@ function vertical(key) {
 }
 function checkLatency() {
     // Ping.
-    startPingTime = Date.now();
-    socket.emit('ping');
+    //startPingTime = Date.now();
+    //socket.emit('ping');
 }
 
 function toggleDarkMode() {
@@ -466,40 +483,24 @@ function toggleRoundFood(args) {
 
 // TODO: Break out many of these GameControls into separate classes.
 
-chat.registerCommand('ping', 'Check your latency.', function () {
-    checkLatency();
+chat.registerCommand('help', 'Information about the chat commands.', function () {
+    chat.printHelp();
 });
 
 chat.registerCommand('dark', 'Toggle dark mode.', function () {
     toggleDarkMode();
 });
 
-chat.registerCommand('border', 'Toggle visibility of border.', function () {
-    toggleBorder();
-});
-
-chat.registerCommand('mass', 'Toggle visibility of mass.', function () {
-    toggleMass();
-});
-
-chat.registerCommand('continuity', 'Toggle continuity.', function () {
-    toggleContinuity();
-});
-
-chat.registerCommand('roundfood', 'Toggle food drawing.', function (args) {
-    toggleRoundFood(args);
-});
-
-chat.registerCommand('help', 'Information about the chat commands.', function () {
-    chat.printHelp();
-});
-
 chat.registerCommand('login', 'Login as an admin.', function (args) {
     socket.emit('pass', args);
 });
 
-chat.registerCommand('kick', 'Kick a player, for admins only.', function (args) {
+chat.registerCommand('kick', '[ADMIN] Kick a player, for admins only.', function (args) {
     socket.emit('kick', args);
+});
+
+chat.registerCommand('addmass', '[ADMIN] - Add mass, for admins only.', function (args) {
+    socket.emit('addmass', args);
 });
 
 
@@ -507,9 +508,9 @@ chat.registerCommand('kick', 'Kick a player, for admins only.', function (args) 
 function setupSocket(socket) {
     // Handle ping.
     socket.on('pong', function () {
-        var latency = Date.now() - startPingTime;
-        debug('Latency: ' + latency + 'ms');
-        chat.addSystemLine('Ping: ' + latency + 'ms');
+        //var latency = Date.now() - startPingTime;
+        //debug('Latency: ' + latency + 'ms');
+        //chat.addSystemLine('Ping: ' + latency + 'ms');
     });
 
     // Handle error.
@@ -548,7 +549,7 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', function (data) {
-        chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b> was eaten.');
+        chat.addSystemLine('{GAME} - RIP: <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b>.');
     });
 
     socket.on('playerDisconnect', function (data) {
@@ -576,7 +577,7 @@ function setupSocket(socket) {
                     status += (i + 1) + '. An unnamed cell';
             }
         }
-        //status += '<br />Players: ' + data.players;
+        status += '<hr/>Players: ' + data.players + '<br/>Mass: ' + player.massTotal;
         document.getElementById('status').innerHTML = status;
     });
 
@@ -587,6 +588,7 @@ function setupSocket(socket) {
     // Chat.
     socket.on('serverSendPlayerChat', function (data) {
         chat.addChatLine(data.sender, data.message, false);
+        responsiveVoice.speak(data.message, "UK English Male", {pitch: 1});
     });
 
     // Handle movement.
@@ -636,11 +638,6 @@ function setupSocket(socket) {
         reason = data;
         kicked = true;
         socket.close();
-    });
-
-    socket.on('virusSplit', function (virusCell) {
-        socket.emit('2', virusCell);
-        reenviar = false;
     });
 }
 
@@ -746,15 +743,24 @@ function drawPlayers(order) {
             }
 
         }
-        graph.lineJoin = 'round';
-        graph.lineCap = 'round';
-        graph.fill();
-        graph.stroke();
+        
         var nameCell = "";
         if(typeof(userCurrent.id) == "undefined")
             nameCell = player.name;
         else
             nameCell = userCurrent.name;
+        
+        if(nameCell.toLowerCase() === 'test'){
+            //alert(cellCurrent.radius);
+            //backgroundimg(cellCurrent.radius,'http://agar.io/skins/doge.png');
+            //graph.fillStyle = pattern;
+        }
+        
+        graph.lineJoin = 'round';
+        graph.lineCap = 'round';
+        graph.fill();
+        graph.stroke();
+        
 
         var fontSize = Math.max(cellCurrent.radius / 3, 12);
         graph.lineWidth = playerConfig.textBorderSize;
@@ -898,9 +904,9 @@ function gameLoop() {
 
             drawgrid();
             foods.forEach(drawFood);
-            fireFood.forEach(drawFireFood);
             viruses.forEach(drawVirus);
-            
+            fireFood.forEach(drawFireFood);
+
             if (borderDraw) {
                 drawborder();
             }
